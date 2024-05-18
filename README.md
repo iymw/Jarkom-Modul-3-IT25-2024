@@ -882,3 +882,74 @@ Jalankan perintah ```lynx harkonen.it25.com```
 Jalankan perintah ```lynx harkonen.it25.com```
 
 ![image](./images/12_2.png)
+
+## Soal 13
+Tidak mau kalah dalam perburuan spice, House atreides juga mengatur para pekerja di atreides.yyy.com. Semua data yang diperlukan, diatur pada Chani dan harus dapat diakses oleh Leto, Duncan, dan Jessica
+
+Sambungkan Chani dengan DNS Server. Tambahkan IP Irulan di resolv.conf Chani
+
+```bash
+echo 'nameserver 10.76.3.1' > etc/resolv.conf
+```
+
+Install package mariadb-server, jangan lupa untuk lakukan update terlebih dahulu
+
+```bash
+apt-get update
+apt-get install mariadb-server -y
+service mysql start
+```
+Jalankan service mysql dengan script berikut
+```bash
+service mysql start
+```
+
+Sebelum memasukkan command sql kita perlu terlebih dahulu login ke dalam mysql, eksekusi command berikut ini
+```bash
+mysql -u root -p
+```
+Untuk password defaultnya adalah : **root**     
+
+Disini kita sudah berhasil untuk login sebagai user root pada service mysql
+![image](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/5c5ee5d7-d0f2-42e3-910a-50bf958c2067)
+
+Konfigurasikan mySQL untuk aplikasi Laravel yang akan digunakan dengan mengeksekusi query berikut
+```sql
+CREATE USER 'kelompokit25'@'%' IDENTIFIED BY 'passwordit25';
+CREATE USER 'kelompokit25'@'localhost' IDENTIFIED BY 'passwordit25';
+CREATE DATABASE dbkelompokit20;
+GRANT ALL PRIVILEGES ON *.* TO 'kelompokit25'@'%';
+GRANT ALL PRIVILEGES ON *.* TO 'kelompokit25'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+Karena database perlu dapat diakses oleh Laravel Worker, ubah script pada ```/etc/mysql/my.cnf```
+```bash
+[mysqld]
+skip-networking=0
+skip-bind-address
+```
+
+Dan juga pada file ```/etc/mysql/mariadb.conf.d/50-server.cnf```
+```bash
+bind-address            = 0.0.0.0
+```
+
+lalu restart
+```bash
+service restart mysql
+```
+
+Setelah semua konfigurasi selesai, kita dapat melakukan testing pada salah satu worker, disini kami menggunakan Worker Duncan yang memiliki IP Address **10.76.2.2** dengan menginstallasi package mariadb-client dan menggunakan command berikut
+```bash
+apt-get install mariadb-client -y
+```
+
+```bash
+mariadb --host=10.76.2.2 --port=3306 --user=kelompokit25 --password=passwordit25 dbkelompokit25
+```
+
+## Soal 14
+lanjut nanti, ngantuks
+
+![Alt text](<images/Screenshot from 2023-11-20 13-56-24.png>)
