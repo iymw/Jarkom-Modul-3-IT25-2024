@@ -1130,7 +1130,7 @@ Untuk endpoint nomor 17 ini kita perlu untuk menggunakan bearer token, yang dida
 ```bash
 curl -X POST -H "Content-Type: application/json" -d '{"username": "it25", "password": "it25password"}' http://atreides.it25.com:8001/api/auth/login | jq -r '.token' > token.txt
 ```
-![Alt text](<images/Screenshot from 2023-11-20 14-14-32.png>)
+
 Response dari request tersebut akan disimpan di token.txt, jika berhasil maka akan tampil token yang akan kita gunakan. Perlu diperhatikan jika terjadi kegagalan ada kemungkinan server menerima terlalu banyak request sehingga kita perlu tunggu dulu beberapa saat.
 
 Selanjutnya, masukkan token ke variabel global dengan jq
