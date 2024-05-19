@@ -1122,7 +1122,7 @@ echo ' {
 
 lalu testing menggunakan command berikut
 ```
-ab -n 100 -c 10 -p login.json -T application/json http://atreides.it25.com:8001/api/auth/login
+ab -n 100 -c 10 -p register.json -T application/json http://atreides.it25.com:8001/api/auth/register
 ```
 ![image](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/7b5fa4e4-824f-4219-a4a2-574da4b0460a)
 
@@ -1142,3 +1142,134 @@ Kemudian jalankan command testing dibawah ini
 ab -n 100 -c 10 -H "Authorization: Bearer $token" http://atreides.it25.com:8001/api/me
 ```
 ![image](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/07b579ca-78bb-410d-ac51-dac7adc8041c)
+
+## Soal 18
+Untuk memastikan ketiganya bekerja sama secara adil untuk mengatur atreides Channel maka implementasikan Proxy Bind pada Stilgar untuk mengaitkan IP dari Leto, Duncan, dan Jessica
+
+Untuk mengimplementasikan proxy bind pada node Load Balancer (Stilgar), kita dapat melakukan langkah-langkah berikut
+
+Subdomain *atreides.it25.com* perlu diarahkan ke IP Address Load Balancer (Stilgar), sehingga kita perlu melakukan konfigurasi ulang pada file ```/etc/bind/jarkom/atreides.it25.com``` di DNS Server (Irulan)
+```bind
+;
+; BIND data file for local loopback interface
+;
+$TTL    604800
+@       IN      SOA     atreides.it25.com. root.atreides.it25.com. (
+                        2023101001      ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      atreides.it25.com.
+@       IN      A       10.76.4.2     ; IP Stilgar (Load Balancer)
+www     IN      CNAME   atreides.it25.com.
+```
+
+Untuk melakukan testing kita dapat mengeksekusi command berikut
+```bash
+ab -n 100 -c 10 -p register.json -T application/json http://atreides.it25.com/api/auth/login
+```
+![image](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/352516b4-b873-4f0a-bb50-ba2e735947d6)
+
+## Soal 19
+Untuk meningkatkan performa dari Worker, coba implementasikan PHP-FPM pada Leto, Duncan, dan Jessica. Untuk testing kinerja naikkan 
+- pm.max_children
+- pm.start_servers
+- pm.min_spare_servers
+- pm.max_spare_servers
+sebanyak tiga percobaan dan lakukan testing sebanyak 100 request dengan 10 request/second kemudian berikan hasil analisisnya pada PDF
+
+Pada soal 19 ini kita akan melakukan modifikasi pada parameter-parameter PHP-FPM yang berada di worker. Parameter-parameter tersebut dapat ditemukan di file ```/etc/php/8.0/fpm/pool.d/www.conf```, berikut adalah script dan parameter yang kami gunakan
+
+- ### Script 1
+```conf
+[www]
+user = www-data
+group = www-data
+listen = /run/php/php8.0-fpm.sock
+listen.owner = www-data
+listen.group = www-data
+php_admin_value[disable_functions] = exec,passthru,shell_exec,system
+php_admin_flag[allow_url_fopen] = off
+
+pm = dynamic
+pm.max_children = 3
+pm.start_servers = 1
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+```
+
+Untuk command testing nya masih sama dengan nomor sebelumnya
+```bash
+ab -n 100 -c 10 -p register.json -T application/json http://atreides.it25.com/api/auth/login
+```
+![image](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/5a41db7b-1e53-4752-8b32-1f862c299d52)
+
+lakukan 2 percobaan lagi
+- ### Script 2
+```conf
+[www]
+user = www-data
+group = www-data
+listen = /run/php/php8.0-fpm.sock
+listen.owner = www-data
+listen.group = www-data
+php_admin_value[disable_functions] = exec,passthru,shell_exec,system
+php_admin_flag[allow_url_fopen] = off
+
+pm = dynamic
+pm.max_children = 15
+pm.start_servers = 5
+pm.min_spare_servers = 5
+pm.max_spare_servers = 7
+```
+
+testing
+![image](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/669fc458-a062-4d3e-be70-f599851d3d58)
+
+- ### Script 3
+```conf
+[www]
+user = www-data
+group = www-data
+listen = /run/php/php8.0-fpm.sock
+listen.owner = www-data
+listen.group = www-data
+php_admin_value[disable_functions] = exec,passthru,shell_exec,system
+php_admin_flag[allow_url_fopen] = off
+
+pm = dynamic
+pm.max_children = 25
+pm.start_servers = 5
+pm.min_spare_servers = 5
+pm.max_spare_servers = 15
+```
+![image](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/8aaed98d-e9e8-4bb3-bb72-a94c3338334c)
+
+## Soal 20
+Nampaknya hanya menggunakan PHP-FPM tidak cukup untuk meningkatkan performa dari worker maka implementasikan Least-Conn pada Stilgar. Untuk testing kinerja dari worker tersebut dilakukan sebanyak 100 request dengan 10 request/second
+
+Untuk mengubah algoritma yang digunakan oleh Load Balancer kita perlu melakukan konfigurasi ulang nginx di Eisen. Lebih tepatnya di file ```/etc/nginx/sites-available/laravel``` yang sudah kita buat sebelumnya
+
+```nginx
+upstream worker {
+    least_conn; # Least Connection
+    server 192.243.4.1:8001;
+    server 192.243.4.2:8002;
+    server 192.243.4.3:8003;
+}
+
+server {
+    listen 80;
+    server_name riegel.canyon.it20.com www.riegel.canyon.it20.com;
+
+    location / {
+        proxy_pass http://worker;
+    }
+}
+```
+
+testing
+![image](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/77493d24-72ab-4548-9d33-30d028269cfd)
+
