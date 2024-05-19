@@ -1080,3 +1080,65 @@ Jika sudah berhasil, akan tampil tampilan berikut
 
 ![Screenshot 2024-05-18 234038](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/ed4c4ee7-973a-456a-bbcd-119f60183c5e)
 
+## Soal 15 - 17
+atreides Channel memiliki beberapa endpoint yang harus ditesting sebanyak 100 request dengan 10 request/second. Tambahkan response dan hasil testing pada peta.
+POST /auth/register (15)
+POST /auth/login (16)
+GET /me (17)
+
+Sebelum melakukan testing, pastikan client sudah terhubung ke DNS Server
+```bash
+echo 'nameserver 10.76.3.1' > etc/resolv.conf
+```
+Lakukan installasi juga untuk package yang diperlukan untuk benchmarking seperti Apache Benchmark dan Htop
+```bash
+apt-get update
+apt-get install lynx -y
+apt-get install htop -y
+apt-get install apache2-utils -y
+apt-get install jq -y
+```
+Untuk testing, kami disini menggunakan client Paul dan worker Duncan
+Pada nomor 15 kami membuat file JSON yang berisi kredensial username dan password untuk benchmarking ini yang diberi nama ```register.json```
+```json
+{
+  "username": "it25",
+  "password": "passwordit25"
+}
+```
+Untuk testingnya menggunakan command berikut
+```bash
+ab -n 100 -c 10 -p register.json -T application/json http://atreides.it25.com:8001/api/auth/register
+```
+![image](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/ac2c4fe1-ee27-4135-8059-9b8a66388529)
+
+Pada nomor 16 jalankan script ini
+```bash
+echo ' {
+        "username": "it25",
+        "password": "it25password"
+}' > login.json
+```
+
+lalu testing menggunakan command berikut
+```
+ab -n 100 -c 10 -p login.json -T application/json http://atreides.it25.com:8001/api/auth/login
+```
+![image](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/7b5fa4e4-824f-4219-a4a2-574da4b0460a)
+
+Untuk endpoint nomor 17 ini kita perlu untuk menggunakan bearer token, yang didapat dengan melakukan request POST ke endpoint di nomor sebelumnya
+```bash
+curl -X POST -H "Content-Type: application/json" -d '{"username": "it25", "password": "it25password"}' http://atreides.it25.com:8001/api/auth/login | jq -r '.token' > token.txt
+```
+![Alt text](<images/Screenshot from 2023-11-20 14-14-32.png>)
+Response dari request tersebut akan disimpan di token.txt, jika berhasil maka akan tampil token yang akan kita gunakan. Perlu diperhatikan jika terjadi kegagalan ada kemungkinan server menerima terlalu banyak request sehingga kita perlu tunggu dulu beberapa saat.
+
+Selanjutnya, masukkan token ke variabel global dengan jq
+```bash
+token=$(cat token.txt); curl -H "Authorization: Bearer $token" http://atreides.it25.com:8001/api/me
+```
+Kemudian jalankan command testing dibawah ini
+```bash
+ab -n 100 -c 10 -H "Authorization: Bearer $token" http://atreides.it25.com:8001/api/me
+```
+![image](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/07b579ca-78bb-410d-ac51-dac7adc8041c)
