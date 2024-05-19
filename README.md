@@ -917,7 +917,7 @@ Konfigurasikan mySQL untuk aplikasi Laravel yang akan digunakan dengan mengeksek
 ```sql
 CREATE USER 'kelompokit25'@'%' IDENTIFIED BY 'passwordit25';
 CREATE USER 'kelompokit25'@'localhost' IDENTIFIED BY 'passwordit25';
-CREATE DATABASE dbkelompokit20;
+CREATE DATABASE DBit25;
 GRANT ALL PRIVILEGES ON *.* TO 'kelompokit25'@'%';
 GRANT ALL PRIVILEGES ON *.* TO 'kelompokit25'@'localhost';
 FLUSH PRIVILEGES;
@@ -946,10 +946,137 @@ apt-get install mariadb-client -y
 ```
 
 ```bash
-mariadb --host=10.76.2.2 --port=3306 --user=kelompokit25 --password=passwordit25 dbkelompokit25
+mariadb --host=10.76.2.2 --port=3306 --user=kelompokit25 --password=passwordit25 DBit25
 ```
 
-## Soal 14
-lanjut nanti, ngantuks
+![image](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/080871a3-83d9-4eb0-b6a5-132e5d1060d0)
 
-![Alt text](<images/Screenshot from 2023-11-20 13-56-24.png>)
+## Soal 14
+Leto, Duncan, dan Jessica memiliki atreides Channel sesuai dengan quest guide berikut. Jangan lupa melakukan instalasi PHP8.0 dan Composer
+
+Di nomor 14 ini kita akan melakukan installasi aplikasi Laravel pada ketiga worker Laravel. Aplikasikan langkah-langkah dibawah ini di ketiga worker.
+
+Tambahkan IP Irulan di resolv.conf worker
+```bash
+echo 'nameserver 10.76.3.1' > etc/resolv.conf
+```
+
+lalu install package yang diperlukan
+```bash
+apt-get update
+
+# Lynx, Engine X
+apt-get install lynx -y
+apt-get install nginx -y
+
+# PHP 8.0
+apt-get install -y lsb-release ca-certificates apt-transport-https software-properties-common gnupg2
+curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
+
+apt-get update
+apt-get install php8.0-mbstring php8.0-xml php8.0-cli php8.0-common php8.0-intl php8.0-opcache php8.0-readline php8.0-mysql php8.0-fpm php8.0-curl unzip wget -y
+php --version
+
+service nginx start
+service php8.0-fpm start
+
+# Composer
+wget https://getcomposer.org/download/2.0.13/composer.phar
+chmod +x composer.phar
+mv composer.phar /usr/bin/composer
+composer -V
+
+# Git
+apt-get install git -y
+```
+selanjutnya kita akan melakukan *git clone* pada aplikasi Laravel yang akan kita gunakan. 
+```bash
+git clone https://github.com/martuafernando/laravel-praktikum-jarkom.git
+```
+Pindahkan hasil clone tersebut kedalam folder ```/var/www/laravel-praktikum-jarkom```
+```bash
+mv laravel-praktikum-jarkom /var/www/laravel-praktikum-jarkom
+```
+
+Sebelum mulai melakukan konfigurasi, kita terlebih dahulu perlu menginstall modul yang ada pada aplikasi Laravel kita menggunakan composer
+```bash
+cd /var/www/laravel-praktikum-jarkom
+composer update
+composer install
+```
+
+Setelah itu, rename file ```.env.example``` menjadi ```.env```, dan lakukan konfigurasi sebagai berikut
+```bash
+DB_CONNECTION=mysql
+DB_HOST=10.76.4.1
+DB_PORT=3306
+DB_DATABASE=dbkelompokit25
+DB_USERNAME=kelompokit25
+DB_PASSWORD=passwordit25
+```
+
+Konfigurasi tersebut akan menghubungkan aplikasi dengan database yang sudah dibuat sebelumnya. Setelah itu, eksekusi command Laravel berikut
+```bash
+php artisan migrate:fresh
+php artisan db:seed --class=AiringsTableSeeder
+php artisan key:generate
+php artisan jwt:secret
+php artisan storage:link
+```
+
+Kita juga perlu melakukan konfigurasi nginx, lakukan konfigurasi seperti dibawah ini pada file ```/etc/nginx/sites-available/laravel-worker```
+
+```bash
+touch /etc/nginx/sites-available/laravel
+
+echo 'server {
+
+        listen 8001; #ubah sesuai worker
+        root /var/www/laravel-praktikum-jarkom/public;
+
+        index index.php index.html index.htm;
+        server_name _;
+
+        location / {
+                try_files $uri $uri/ /index.php?$query_string;
+        }
+
+        # pass PHP scripts to FastCGI server
+        location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.0-fpm.sock;
+        }
+
+location ~ /\.ht {
+            deny all;
+    }
+
+        error_log /var/log/nginx/implementasi_error.log;
+        access_log /var/log/nginx/implementasi_access.log;
+}' > /etc/nginx/sites-available/laravel
+
+service php8.0-fpm restart
+service nginx restart
+```
+
+Kemudian lakukan symlink dan kelola akses izin
+```bash
+ln -s /etc/nginx/sites-available/laravel /etc/nginx/sites-enabled/
+chown -R www-data.www-data /var/www/laravel-praktikum-jarkom/
+```
+
+Jangan lupa untuk melakukan restart pada nginx dan PHP 8.0
+```bash
+service nginx restart
+service php8.0-fpm start
+```
+
+Untuk melakukan testing kita dapat menggunakan **lynx localhost:[port]** sesuai dengan Worker yang kita gunakan. Disini kami akan melakukan testing pada worker Jessica dengan port 8001
+```bash
+lynx localhost:8001
+```
+Jika sudah berhasil, akan tampil tampilan berikut
+
+![Screenshot 2024-05-18 234038](https://github.com/michaelwaynewibisono/Jarkom-Modul-3-IT25-2024/assets/143694651/ed4c4ee7-973a-456a-bbcd-119f60183c5e)
+
