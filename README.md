@@ -4,7 +4,7 @@
 
 | Nama                                          | NRP          |
 | ----------------------------------------------| ------------ |
-| Mohammad Arkananta Radithya Taratugang        | `50272210xx` |
+| Mohammad Arkananta Radithya Taratugang        | `5027221003` |
 | Michael Wayne                                 | `5027221037` |
 
 ## Topologi
